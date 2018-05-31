@@ -1,5 +1,68 @@
+#include "assert.h"
+
 #include <stdio.h>
+#include <unistd.h>
+
+#include <atomic>
+#include <ctime>
+#include <thread>
+
 #include <GLFW/glfw3.h>
+
+/*
+In this test, a producer thread posts empty events, and a consumer thread consumes them.
+
+- The producer thread waits for the consumer to consume the event before posting a new event.
+
+- The consumer thread waits for the producer to declare that an event /will/ be produced before
+   trying to consume it.
+*/
+
+std::atomic_int event_status;
+constexpr int CONSUMED = 0;
+constexpr int POSTED = 1;
+
+void consume() {
+    while(true) {
+        while(event_status != POSTED) {
+            std::this_thread::yield();
+        }
+
+        glfwWaitEvents(); printf("c");
+
+        event_status = CONSUMED;
+    }
+}
+
+void produce() {
+    while(true) {
+        using namespace std;
+        clock_t begin = clock();
+        while(event_status != CONSUMED) {
+            this_thread::yield();
+            clock_t end = clock();
+            double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+            if(elapsed_secs > 3) {
+                printf(
+                    "\nThe bug has been reproduced:"
+                    "\nThe main thread is blocked since 3 seconds in glfwWaitEvents(), "
+                    "eventhough an empty event has been posted to unblock it.\n");
+                exit(1);
+            }
+        }
+
+        event_status = POSTED;
+        
+        glfwPostEmptyEvent(); printf(".");
+
+        // Note that if we move 'event_status = POSTED;' here
+        // (thereby ensuring that glfwPostEmptyEvent() and glfwWaitEvents()
+        // do not execute at the same time), the bug is not reproduced.
+        //
+        // In other words, the bug seems to exist only when glfwPostEmptyEvent()
+        // and glfwWaitEvents() are executing at the same time.
+    }
+}
 
 void error_callback(int error, const char* description)
 {
@@ -7,36 +70,48 @@ void error_callback(int error, const char* description)
 }
 
 int main() {
+
+    // disable stdout buffering, to see logs immediately.
+    setbuf(stdout, NULL);
+    
     if (!glfwInit())
     {
         return 1;
     }
     
     glfwSetErrorCallback(error_callback);
-    /*
     GLFWwindow* window = glfwCreateWindow(640, 480, "My Title", NULL, NULL);
     if (!window)
     {
         return 2;
     }
     glfwMakeContextCurrent(window);
-    */
-    // clear the event queue:
-    glfwPollEvents();
-
-    for(int i=0;;++i) {
-        printf("%d", i);
-        // put an event in the queue
-        glfwPostEmptyEvent();
-
-        printf(".");
-        // consume the event
-        glfwWaitEvents();
-    }
     
-    //glfwDestroyWindow(window);
+    // Window creation has generated some events in the queue so we clear the queue:
+    glfwPollEvents();
+    for(int i=0; i<10; ++i) {
+        glfwWaitEventsTimeout(0.1);
+        glfwPollEvents();
+    }
+
+    printf(
+        "Please stay here in the terminal while the test is running, \n"
+        "to ensure that no event is sent to the glfw window.\n"
+        "\nPress a key to start the test...");
+    getchar();
+    
+
+    {
+        event_status = CONSUMED;
+        std::thread producer(produce);
+        consume();
+    }
+
+    glfwDestroyWindow(window);
     return 0;
 }
 
 // build on OSX :
 // gcc main.c -I"/usr/local/Cellar/glfw/3.2.1/include/GLFW/" -lglfw3
+// build on linux:
+// g++ main.c -lglfw -lpthread
