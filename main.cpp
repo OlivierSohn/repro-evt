@@ -114,4 +114,4 @@ int main() {
 // build on OSX :
 // g++ main.cpp -std=c++14 -I"/usr/local/Cellar/glfw/3.2.1/include/GLFW/" -lglfw3
 // build on linux:
-// g++ main.c -std=c++14 -lglfw -lpthread
+// g++ main.cpp -std=c++14 -lglfw -lpthread
