@@ -7,6 +7,7 @@
 #include <ctime>
 #include <thread>
 
+//#include "../glfw/include/GLFW/glfw3.h"
 #include <GLFW/glfw3.h>
 
 /*
@@ -78,7 +79,9 @@ int main() {
     {
         return 1;
     }
-    
+
+    printf("glfwGetVersionString = %s\n\n", glfwGetVersionString());
+
     glfwSetErrorCallback(error_callback);
     GLFWwindow* window = glfwCreateWindow(640, 480, "My Title", NULL, NULL);
     if (!window)
