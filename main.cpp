@@ -53,7 +53,7 @@ void produce() {
         }
 
         event_status = POSTED;
-        
+
         glfwPostEmptyEvent(); printf(".");
 
         // Note that if we move 'event_status = POSTED;' here
@@ -116,5 +116,11 @@ int main() {
 
 // build on OSX :
 // g++ main.cpp -std=c++14 -I"/usr/local/Cellar/glfw/3.2.1/include/GLFW/" -lglfw3
+
 // build on linux:
-// g++ main.cpp -std=c++14 -lglfw -lpthread
+// g++ main.cpp -std=c++14 -lglfw3 -lX11 -ldl -lpthread
+
+// build on linux with modified glfw:
+// (from folder "/home/olivier/dev/glfw_build/"): make && mv ./src/libglfw3.a ./src/libglfw3My.a
+// g++ main.cpp -std=c++14 -L"/home/olivier/dev/glfw_build/src" -lglfw3My -lX11 -ldl -lpthread
+
