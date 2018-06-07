@@ -23,13 +23,15 @@ std::atomic_int event_status;
 constexpr int CONSUMED = 0;
 constexpr int POSTED = 1;
 
+uint64_t nIterations = 0;
+
 void consume() {
     while(true) {
         while(event_status != POSTED) {
             std::this_thread::yield();
         }
 
-        glfwWaitEvents(); printf("c");
+        glfwWaitEvents(); /*printf("c");*/
 
         event_status = CONSUMED;
     }
@@ -45,16 +47,17 @@ void produce() {
             double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
             if(elapsed_secs > 3) {
                 printf(
-                    "\nThe bug has been reproduced:"
+                    "\nThe bug has been reproduced after %lu iterations:"
                     "\nThe main thread is blocked since 3 seconds in glfwWaitEvents(), "
-                    "eventhough an empty event has been posted to unblock it.\n");
+                    "eventhough an empty event has been posted to unblock it.\n"
+                    , nIterations);
                 exit(1);
             }
         }
 
         event_status = POSTED;
 
-        glfwPostEmptyEvent(); printf(".");
+        glfwPostEmptyEvent(); /*printf(".");*/ ++nIterations;
 
         // Note that if we move 'event_status = POSTED;' here
         // (thereby ensuring that glfwPostEmptyEvent() and glfwWaitEvents()
@@ -118,7 +121,7 @@ int main() {
 // g++ main.cpp -std=c++14 -I"/usr/local/Cellar/glfw/3.2.1/include/GLFW/" -lglfw3
 
 // build on linux:
-// g++ main.cpp -std=c++14 -lglfw3 -lX11 -ldl -lpthread
+// g++ main.cpp -std=c++14 -lglfw -lX11 -ldl -lpthread
 
 // build on linux with modified glfw:
 // (from folder "/home/olivier/dev/glfw_build/"): make && mv ./src/libglfw3.a ./src/libglfw3My.a
