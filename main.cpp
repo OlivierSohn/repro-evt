@@ -58,6 +58,9 @@ void produce() {
         event_status = POSTED;
 
         glfwPostEmptyEvent(); /*printf(".");*/ ++nIterations;
+        if(0 == nIterations%100000) {
+            printf("\nbug not reproduced after %lu iterations\n", nIterations);
+        }
 
         // Note that if we move 'event_status = POSTED;' here
         // (thereby ensuring that glfwPostEmptyEvent() and glfwWaitEvents()
